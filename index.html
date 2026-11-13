@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#f7fafc">
+<title>生命的藍圖 2.0｜染色體・減數分裂・受精</title>
+<link rel="preload" href="01-2.webp" as="image">
+<link rel="stylesheet" href="style.css">
+<script src="app.js" defer></script>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon">🧬</span><span><strong>生命的藍圖</strong><small>染色體 × 生殖｜互動複習 2.0</small></span></div>
+    <div class="top-center" id="step-title">九年級自主複習</div>
+    <div class="right-head"><span class="round-pill" id="round-pill">0 / 3 關完成</span><button class="text-button" id="home-btn" title="回到首頁">⌂ 首頁</button></div>
+  </header>
+  <main id="scene">
+    <section id="intro" class="intro">
+      <div class="intro-characters"><img class="hero-boy" src="01-2.webp" alt="雄性果蠅"><img class="hero-girl" src="02-2.webp" alt="雌性果蠅"></div>
+      <div class="intro-card"><span class="eyebrow">帶著問題動手做</span><h1>染色體的<br><em>條、對、套</em></h1><p>先想一想，再親自操作，最後用結果確認自己的想法。</p><div class="hero-steps"><span>① 果蠅 · 10 條</span><span>② 跳鼠 · 12 條</span><span>③ 牡蠣 · 三套</span></div><button id="begin" class="button primary big">開始複習</button><div class="course-note">染色體數量為教學簡化模型，並非圖中物種的實際染色體數。</div></div>
+    </section>
+    <section id="play" class="play hidden" aria-label="染色體互動操作">
+      <aside class="instructions"><div class="stage-pill" id="stage-pill">第 1 關 · 果蠅</div><h2 id="task-title">找出染色體</h2><p id="task-instruction">點選每條染色體，數一數。</p><div id="goal" class="goal"></div><div id="progress-steps" class="progress-steps"></div><div class="mini-art"><img id="art-left" src="01-2.webp" alt="生物角色"><img id="art-right" src="02-2.webp" alt="生物角色"></div><div class="legend"><span class="key autosome"></span> 體染色體 <span class="key sex"></span> 性染色體</div></aside>
+      <div class="workspace">
+        <div id="workspace-head" class="workspace-head"></div>
+        <div id="arena" class="arena">
+          <div id="nucleus" class="nucleus"><div class="nucleus-label">細胞核</div><div id="float-layer" class="float-layer"></div></div>
+          <div id="group-board" class="group-board hidden"><div class="group-head">已整理完成</div><div id="group-list" class="group-list"></div></div>
+        </div>
+        <div id="sorting" class="sorting hidden"><div class="source-col"><h3 id="source-title">染色體池</h3><div id="source-pool" class="source-pool"></div><p class="drag-hint">拖曳染色體到右邊；也可以先點選，再點目標。</p></div><div id="target-area" class="target-area"></div></div>
+        <div id="result" class="result hidden"></div>
+        <div class="actionbar"><div id="status-message" class="status-message" role="status"></div><button id="assist" class="button outline">操作提示</button><button id="next" class="button primary" disabled>完成這一步 →</button></div>
+      </div>
+    </section>
+    <section id="end" class="end hidden"></section>
+  </main>
+</div>
+<div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden><div class="modal-card"><span class="modal-kicker" id="modal-kicker">先預測 · 再驗證</span><h2 id="modal-title"></h2><p id="modal-description"></p><div id="modal-body"></div><div class="modal-actions" id="modal-actions"></div></div></div>
+<div id="rotate" class="rotate" hidden><div class="rotate-card"><div style="font-size:42px">↻ 📱</div><h2>建議橫向操作</h2><p>橫向空間比較大，拖曳染色體更順手。直向也能繼續操作喔！</p><button id="rotate-okay" class="button primary">繼續操作</button></div></div>
+</body>
+</html>
