@@ -1,0 +1,52 @@
+/* 增量介面：只影響新增的預測、核對、通關對話框，不更動原版染色體或細胞。 */
+#score-board-m,#score-board-f { display:none !important; }
+#chrom-learning-overlay {
+  position:fixed; inset:0; z-index:100005; display:none; align-items:center; justify-content:center;
+  padding:12px; box-sizing:border-box; background:rgba(248,250,252,.76);
+  backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); touch-action:manipulation;
+}
+#chrom-learning-overlay.chrom-visible { display:flex; }
+.chrom-learning-card {
+  width:min(630px, 95vw); max-width:calc(100vw - 24px); max-height:calc(100vh - 24px); max-height:calc(100dvh - 24px);
+  box-sizing:border-box; overflow:hidden; background:white; border:2px solid #e2e8f0;
+  box-shadow:0 18px 55px rgba(15,23,42,.19); border-radius:22px; padding:clamp(14px,2.6vmin,28px);
+  display:flex; flex-direction:column; gap:clamp(9px,1.6vmin,16px); text-align:center;
+}
+.chrom-learning-title { font-size:clamp(1.2rem,2.4vmin,1.8rem); font-weight:800; line-height:1.4; color:#1e293b; margin:0; }
+.chrom-learning-body { color:#334155; font-size:clamp(.95rem,1.9vmin,1.2rem); line-height:1.5; min-height:0; }
+.chrom-learning-subtitle { font-size:clamp(.84rem,1.55vmin,1rem); color:#64748b; margin:2px 0 0; }
+.chrom-learning-actions { display:flex; flex-wrap:wrap; gap:9px; justify-content:center; }
+.chrom-learning-button {
+  border:0; border-radius:999px; padding:11px 22px; font-size:clamp(1rem,1.9vmin,1.22rem);
+  color:white; background:#2563eb; font-weight:750; cursor:pointer; min-height:47px;
+}
+.chrom-learning-button:disabled {opacity:.45; cursor:not-allowed;}
+.chrom-learning-number { font-size:clamp(1.3rem,2.5vmin,1.5rem); font-weight:800;
+  border:2px solid #94a3b8; color:#1e293b; border-radius:12px; background:#fff;
+  padding:8px 14px; min-height:48px; min-width:95px; text-align:center;
+}
+.chrom-learning-check { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; padding:8px 0; }
+.chrom-learning-check strong { color:#2563eb; }
+.chrom-learning-result-ok { color:#15803d; font-weight:800; }
+.chrom-learning-result-no { color:#b45309; font-weight:800; }
+.chrom-learning-grid { width:100%; border-collapse:separate; border-spacing:0 5px; table-layout:fixed; text-align:center; }
+.chrom-learning-grid th { font-size:clamp(.88rem,1.6vmin,1.08rem); color:#475569; }
+.chrom-learning-grid td { font-size:clamp(.9rem,1.7vmin,1.12rem); font-weight:700; background:#f8fafc; padding:4px 6px; border-radius:8px; }
+.chrom-learning-grid .col-label {width:43%; text-align:left; padding-left:12px;}
+.chrom-learning-grid select { width:min(98px, 100%); min-width:0; min-height:43px; font-size:clamp(1rem,2.2vmin,1.25rem);
+  background:#fff; border:2px solid #cbd5e1; border-radius:9px; font-weight:800; color:#1e293b;
+  text-align:center; padding:4px; cursor:pointer;
+}
+.chrom-learning-grid .chrom-cell-correct { background:#dcfce7; color:#166534; }
+.chrom-learning-grid .chrom-cell-mismatch { background:#fef3c7; color:#92400e; }
+.chrom-oyster-joke { font-size:clamp(1.25rem,2.9vmin,1.8rem); font-weight:850; margin:6px 0 14px; }
+#level-menu-actions {display:flex;flex-direction:column;gap:12px;}
+#next-level-overlay .menu-box {max-height:calc(100dvh - 32px); box-sizing:border-box;}
+@media (max-height:680px) {
+  .chrom-learning-card { padding:12px 17px; gap:7px; }
+  .chrom-learning-grid { border-spacing:0 2px; }
+  .chrom-learning-grid td { padding:2px 5px; }
+  .chrom-learning-grid select { min-height:34px; }
+  .chrom-learning-button { min-height:39px; padding:7px 17px; }
+  #next-level-overlay .menu-box { padding:15px 22px; gap:8px; }
+}
