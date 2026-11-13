@@ -41,10 +41,82 @@ function learningOverlay() {
     }
     return el;
 }
-function clearLearningOverlay() {
-    learningOverlay().classList.remove('chrom-visible');
+let chromQuantitySavedScale = null;
+function restoreQuantityScale() {
+    if (chromQuantitySavedScale === null) return;
+    gsap.set('#nucleus-wrapper', {scale:chromQuantitySavedScale});
+    chromQuantitySavedScale = null;
 }
-function learningModal(title, body, buttons) {
+function clearLearningOverlay() {
+    restoreQuantityScale();
+    const overlay = learningOverlay();
+    overlay.classList.remove('chrom-visible', 'chrom-quantity-visible');
+}
+
+// 「幾對／幾套」預測期間，將小問題卡片停靠在細胞外的空白處。
+// 只改顯示位置，不移動細胞、不隱藏染色體、不改動計數／磁吸。
+function positionQuantityPrediction() {
+    const overlay = learningOverlay();
+    if (!overlay.classList.contains('chrom-quantity-visible')) return;
+    const card = overlay.querySelector('.chrom-learning-card');
+    // 橫直向切換時，先回復原始大小再計算新版面。
+    restoreQuantityScale();
+    const nucleus = document.getElementById('nucleus');
+    const vw = window.innerWidth, vh = window.innerHeight;
+    let circle = nucleus.getBoundingClientRect();
+    const outer = 10, gap = 12;
+    let right = vw - circle.right - gap - outer;
+    let left = circle.left - gap - outer;
+    let top = circle.top - gap - outer;
+    let bottom = vh - circle.bottom - gap - outer;
+    // 僅當小螢幕四周完全放不下提問時，暫時縮小細胞。
+    // 作答後恢復原版 100% 尺寸，避免遮住染色體，也不影響後續拖曳座標。
+    if (Math.max(right, left) < 145 && Math.max(top, bottom) < 155) {
+        const wrapper = document.getElementById('nucleus-wrapper');
+        if (chromQuantitySavedScale === null) chromQuantitySavedScale = Number(gsap.getProperty(wrapper,'scale')) || 1;
+        const miniScale = Math.min(chromQuantitySavedScale, 0.85, Math.max(0.48, (vw - 260) / 600));
+        gsap.set(wrapper, {scale:miniScale});
+        circle = nucleus.getBoundingClientRect();
+        right = vw - circle.right - gap - outer;
+        left = circle.left - gap - outer;
+        top = circle.top - gap - outer;
+        bottom = vh - circle.bottom - gap - outer;
+    }
+    card.classList.remove('chrom-quantity-narrow');
+    card.style.width = ''; card.style.left = ''; card.style.top = '';
+    card.style.right = ''; card.style.bottom = ''; card.style.transform = '';
+
+    if (right >= 145 || left >= 145) {
+        const useRight = right >= left || left < 145;
+        const available = useRight ? right : left;
+        const width = Math.max(105, Math.min(320, available));
+        card.style.width = width + 'px';
+        if (width < 205) card.classList.add('chrom-quantity-narrow');
+        const height = card.getBoundingClientRect().height;
+        const x = useRight ? circle.right + gap : circle.left - gap - width;
+        card.style.left = Math.max(outer, Math.min(vw - width - outer, x)) + 'px';
+        card.style.top = Math.max(outer, Math.min(vh - height - outer, (vh - height) / 2)) + 'px';
+    } else if (top >= 155 || bottom >= 155) {
+        const width = Math.min(570, vw - 2 * outer);
+        card.style.width = width + 'px';
+        const height = card.getBoundingClientRect().height;
+        const useTop = top >= bottom || bottom < 155;
+        card.style.left = (vw - width) / 2 + 'px';
+        card.style.top = (useTop ? outer : vh - height - outer) + 'px';
+    } else {
+        // 低於一般平板大小的螢幕沒有足夠細胞外空間：最小化卡片、靠右。
+        // 不讓任何全螢幕遮罩遮住染色體；原版細胞尺寸維持不變。
+        const width = Math.max(70, Math.min(175, vw - circle.right - outer - gap));
+        card.style.width = width + 'px';
+        card.classList.add('chrom-quantity-narrow');
+        const height = card.getBoundingClientRect().height;
+        card.style.left = Math.max(outer, Math.min(vw - width - outer, circle.right + gap)) + 'px';
+        card.style.top = Math.max(outer, (vh - height) / 2) + 'px';
+    }
+}
+window.addEventListener('resize', positionQuantityPrediction);
+
+function learningModal(title, body, buttons, options = {}) {
     const el = learningOverlay();
     el.querySelector('.chrom-learning-title').textContent = title;
     const bodyArea = el.querySelector('.chrom-learning-body');
@@ -62,7 +134,9 @@ function learningModal(title, body, buttons) {
         actions.appendChild(btn);
         item.element = btn;
     }
+    el.classList.toggle('chrom-quantity-visible', !!options.quantity);
     el.classList.add('chrom-visible');
+    if (options.quantity) positionQuantityPrediction();
     return { el, actions, bodyArea };
 }
 function makeCountSelect(max, value = '') {
@@ -103,7 +177,7 @@ function showQuantityPrediction(kind, next) {
         clearLearningOverlay();
         next();
     }};
-    learningModal(getCountQuestion(kind),holder,[step]);
+    learningModal(getCountQuestion(kind),holder,[step],{quantity:true});
     select.addEventListener('change',()=> {step.element.disabled = select.value === '';});
 }
 function showQuantityResult(kind, next) {
@@ -245,7 +319,7 @@ function showOysterJoke(){
     joke.textContent='牡蠣是體外受精，你在期待什麼...= =？';
     const desc=document.createElement('p');desc.textContent='精子和卵子排入水中，在體外完成受精。';
     wrap.append(joke,desc);
-    learningModal('🦪 牡蠣說：',wrap,[{label:'完成挑戰',action:()=>{clearLearningOverlay();showLevelMenu();}}]);
+    learningModal('',wrap,[{label:'完成挑戰',action:()=>{clearLearningOverlay();showLevelMenu();}}]);
 }
 function showLevelMenu(){
     chromCompletedModes.add(gameConfig.mode);

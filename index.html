@@ -449,6 +449,24 @@
             });
         }
 
+        // 將自動漂浮／散開動畫的目標位置限制在細胞可視範圍。
+        // 保留少量貼邊空間，避免過度擁擠；不改使用者拖曳和原本磁吸設定。
+        function keepChromosomeNearNucleus(entity, desiredX, desiredY) {
+            const cx = desiredX + entity.w / 2;
+            const cy = desiredY + entity.h / 2;
+            const dx = cx - NUCLEUS_RADIUS;
+            const dy = cy - NUCLEUS_RADIUS;
+            const dist = Math.hypot(dx, dy);
+            const visibleRadius = Math.max(entity.w * 0.48, entity.h * 0.43);
+            const limit = Math.max(8, NUCLEUS_RADIUS - visibleRadius);
+            if (!Number.isFinite(dist) || dist <= limit) return {x:desiredX, y:desiredY};
+            const scale = limit / dist;
+            return {
+                x:NUCLEUS_RADIUS + dx * scale - entity.w / 2,
+                y:NUCLEUS_RADIUS + dy * scale - entity.h / 2
+            };
+        }
+
         function transitionToPairs() {
             currentMode = 'pairs'; setUIActiveS1('pairs');
             const unit = gameConfig.ploidy === 3 ? '組' : '對';
@@ -456,8 +474,11 @@
             
             boardEntities.forEach(e => {
                 e.isFloating = false; 
-                const targetX = e.x + (Math.random() > 0.5 ? 40 : -40);
-                const targetY = e.y + (Math.random() > 0.5 ? 40 : -40);
+                const safeTarget = keepChromosomeNearNucleus(
+                    e, e.x + (Math.random() > 0.5 ? 40 : -40),
+                    e.y + (Math.random() > 0.5 ? 40 : -40));
+                const targetX = safeTarget.x;
+                const targetY = safeTarget.y;
 
                 gsap.to(e.el, {
                     x: targetX, y: targetY, duration: 1.5, ease: "power2.out",
@@ -499,8 +520,11 @@
                     };
                     boardEntities.push(newEntity); bindDragS1(newEntity);
 
-                    const targetX = startX + (idx === 0 ? -60 : 60);
-                    const targetY = startY + (Math.random() * 60 - 30);
+                    const safeTarget = keepChromosomeNearNucleus(
+                        newEntity, startX + (idx === 0 ? -60 : 60),
+                        startY + (Math.random() * 60 - 30));
+                    const targetX = safeTarget.x;
+                    const targetY = safeTarget.y;
 
                     gsap.to(wrapper, {
                         x: targetX, y: targetY, duration: 1.5, ease: "power2.out",
@@ -1246,9 +1270,12 @@
                 const scaleMult = (globalStage === 3 && entity.container === 'egg-cell') ? 0.5 : 1;
                 
                 const cx = entity.x + (entity.w / 2); const cy = entity.y + (entity.h / 2); const dx = cx - radius; const dy = cy - radius;
-                const dist = Math.hypot(dx, dy); const collisionRadius = (entity.h / 2) * scaleMult; 
+                const dist = Math.hypot(dx, dy);
+                // 原本速度／碰撞保持不變，只將邊界預留範圍放寬少許，
+                // 最多容許染色體尖端有小部分貼出細胞，不會整條漂出。
+                const collisionRadius = Math.max(entity.w * 0.48, entity.h * 0.43) * scaleMult;
 
-                if (dist + collisionRadius > radius) {
+                if (dist > 0 && dist + collisionRadius > radius) {
                     const nx = dx / dist; const ny = dy / dist; const dotProduct = entity.vx * nx + entity.vy * ny;
                     if (dotProduct > 0) { entity.vx -= 2 * dotProduct * nx; entity.vy -= 2 * dotProduct * ny; }
                     const overlap = (dist + collisionRadius) - radius; entity.x -= nx * overlap; entity.y -= ny * overlap;
