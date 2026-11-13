@@ -111,14 +111,14 @@ function showQuantityResult(kind, next) {
     const unit = isPairs ? (gameConfig.ploidy === 3 ? '組' : '對') : '套';
     const correct = isPairs ? gameConfig.nValue : gameConfig.ploidy;
     const predicted = chromRoundPredictions[kind];
-    const wrap = document.createElement('div');
-    const summary = document.createElement('div'); summary.className='chrom-learning-check';
-    summary.textContent=`你的預測：${predicted === null ? '未填' : predicted} ${unit}　｜　實際操作：${correct} ${unit}`;
-    const feedback = document.createElement('p');
-    feedback.className = predicted === correct?'chrom-learning-result-ok':'chrom-learning-result-no';
-    feedback.textContent = predicted === correct?'預測正確！':'和原本預測不同，現在知道答案了！';
-    wrap.append(summary, feedback);
-    learningModal('操作完成，對照你的預測',wrap,[{label:'繼續下一題',action:()=>{clearLearningOverlay();next();}}]);
+    if (predicted === correct) {
+        learningModal(`${correct}${unit}，完全正確！`,null,[{label:'繼續',action:()=>{clearLearningOverlay();next();}}]);
+    } else {
+        const original = document.createElement('p');
+        original.className = 'chrom-learning-result-no';
+        original.textContent = `你原本預測 ${predicted} ${unit}`;
+        learningModal(`正確答案：${correct}${unit}`,original,[{label:'繼續',action:()=>{clearLearningOverlay();next();}}]);
+    }
 }
 
 const chromGameteFields = [
@@ -142,6 +142,7 @@ function createGametePredictionGrid(onChange) {
         ['性染色體','sex-singles','sex-pairs']
     ]) {
         const tr=tbody.insertRow();
+        tr.className = label === '體染色體' ? 'chrom-row-somatic' : 'chrom-row-sex';
         const cell=tr.insertCell();cell.textContent=label;cell.className='col-label';
         for (const [k,max] of [[singleKey,gameConfig.nValue*gameConfig.ploidy],[pairKey,gameConfig.nValue]]) {
             const td=tr.insertCell();const sel=makeCountSelect(max);sel.setAttribute('aria-label',`${label}${k.endsWith('pairs')?'對數':'條數'}`);
@@ -157,16 +158,20 @@ function createGametePredictionGrid(onChange) {
 function showGametePrediction(gender) {
     const label=gender==='m'?'精子':'卵子';
     const wrap=document.createElement('div');
-    const hint=document.createElement('p');hint.className='chrom-learning-subtitle';hint.textContent='先預測，操作完成後再對答案。';
     const grid=createGametePredictionGrid(()=>checkForm());
-    wrap.append(hint,grid.tbl);
+    // 題目下方不加補充句，避免重複提醒，降低文字負荷。
+    wrap.append(grid.tbl);
     const step={label:'完成預測，開始操作',disabled:true,action:()=>{
         chromRoundPredictions[gender]=Object.fromEntries(Object.entries(grid.choices).map(([k,v])=>[k,Number(v.value)]));
         clearLearningOverlay();
         if(gender==='m') showMessage('💡 提示：在母細胞中「雙擊」同源染色體即可將其拆開！',4000);
     }};
     function checkForm(){step.element.disabled=!Object.values(grid.choices).every(el=>el.value!=='');}
-    learningModal(`先預測：${label}內有多少染色體？`,wrap,[step]);
+    const total = gameConfig.nValue * gameConfig.ploidy;
+    const title = gender === 'm'
+        ? `這隻${getAnimalName()}有${total}條染色體，那精子內有多少條染色體？`
+        : '先預測：卵子內有多少染色體？';
+    learningModal(title,wrap,[step]);
 }
 function showGameteResult(gender) {
     if(chromShownGameteResults[gender]) return;
@@ -179,7 +184,9 @@ function showGameteResult(gender) {
     for(const title of ['項目','你的預測','正確答案']){const th=document.createElement('th');th.textContent=title;head.appendChild(th);}
     const tbody=tbl.createTBody();
     for(const field of chromGameteFields){
-        const tr=tbody.insertRow();const td=tr.insertCell();td.className='col-label';td.textContent=field.name+'（'+field.unit+'）';
+        const tr=tbody.insertRow();
+        tr.className = field.name === '體染色體' ? 'chrom-row-somatic' : (field.name === '性染色體' ? 'chrom-row-sex' : '');
+        const td=tr.insertCell();td.className='col-label';td.textContent=field.name+'（'+field.unit+'）';
         const guess=tr.insertCell();guess.textContent=predicted[field.key]===undefined?'—':String(predicted[field.key]);
         guess.className=predicted[field.key]===answers[field.key]?'chrom-cell-correct':'chrom-cell-mismatch';
         const real=tr.insertCell();real.textContent=String(answers[field.key]);real.className='chrom-cell-correct';
@@ -189,6 +196,36 @@ function showGameteResult(gender) {
     learningModal(`${label}：預測與答案核對`,wrap,[{label:'核對完成，繼續',action:()=>{
         clearLearningOverlay();triggerMotherCellQueue(gender);
     }}]);
+}
+
+
+// 跨關卡的性別挑戰：只由學生實際拖入的精子決定，不代替學生選染色體。
+let chromFruitflyOffspringSex = null;
+let chromJumpSexPromptShown = false;
+let chromJumpSexChallengeTarget = null;
+function rememberFruitflyOffspringSex(isBoy) {
+    chromFruitflyOffspringSex = isBoy ? '雄性' : '雌性';
+    chromJumpSexPromptShown = false; // 重新練習果蠅後，下一次跳鼠可再得到提醒。
+}
+function askAlternativeOffspringChallenge() {
+    if (gameConfig.mode !== '2n12' || !chromFruitflyOffspringSex || chromJumpSexPromptShown) {
+        showGametePrediction('m');
+        return;
+    }
+    chromJumpSexPromptShown = true;
+    const other = chromFruitflyOffspringSex === '雄性' ? '雌性' : '雄性';
+    learningModal(`剛才果蠅生出${chromFruitflyOffspringSex}寶寶，這次試試讓跳鼠生出${other}寶寶？`,null,[
+        {label:'好，試試看',action:()=>{
+            chromJumpSexChallengeTarget = other;
+            clearLearningOverlay();
+            showGametePrediction('m');
+        }},
+        {label:'自由操作',action:()=>{
+            chromJumpSexChallengeTarget = null;
+            clearLearningOverlay();
+            showGametePrediction('m');
+        }}
+    ]);
 }
 
 function showTriploidExplanation(){
@@ -224,12 +261,17 @@ function showLevelMenu(){
         }
     } else if(gameConfig.mode==='2n10') {
         title.textContent='🎉 果蠅過關！';
-        addLevelButton(actions,'下一關：跳鼠（12 條）','2n12');
+        if (chromCompletedModes.has('2n12')) {
+            showEarnedReviewActions(actions);
+        } else {
+            addLevelButton(actions,'下一關：跳鼠（12 條）','2n12');
+        }
         preloadImages(['07.webp','07-2.webp','08.webp','08-2.webp','09.webp','10.webp','11.webp']);
     } else if(gameConfig.mode==='2n12'){
-        title.textContent='🎉 跳鼠過關！';
-        addLevelButton(actions,'下一關：牡蠣（三套）','3n12');
+        // 跳鼠完成後先詢問：高中挑戰非必修。
         preloadImages(['06.webp','06-2.webp']);
+        showOptionalOysterPrompt();
+        return;
     }
     menu.style.display='flex';
     gsap.fromTo('#next-level-overlay .menu-box',{scale:.7,opacity:0},{scale:1,opacity:1,duration:.4,ease:'back.out(1.2)'});
@@ -240,4 +282,37 @@ function addLevelButton(container,label,mode){
     btn.textContent=label;
     btn.onclick=()=>{clearLearningOverlay();restartGame(mode);};
     container.appendChild(btn);
+}
+
+// 牡蠣為高中進階選修；拒絕後只解鎖「已完成」的前兩關，第三關不強迫開始。
+function showOptionalOysterPrompt() {
+    if (chromCompletedModes.has('3n12')) { showLevelMenu(); return; }
+    document.getElementById('next-level-overlay').style.display = 'none';
+    learningModal('牡蠣是高中課程，想挑戰看看嗎？',null,[
+        {label:'好',action:()=>{clearLearningOverlay();restartGame('3n12');}},
+        {label:'還是回去多操作多複習幾次鞏固記憶',action:()=>{
+            clearLearningOverlay();showEarnedReviewMenu();
+        }}
+    ]);
+}
+function showEarnedReviewActions(actions) {
+    if (chromCompletedModes.has('2n10')) addLevelButton(actions,'再練一次：果蠅','2n10');
+    if (chromCompletedModes.has('2n12')) addLevelButton(actions,'再練一次：跳鼠','2n12');
+    if (chromCompletedModes.has('2n12') && !chromCompletedModes.has('3n12')) {
+        const btn=document.createElement('button');
+        btn.className='menu-btn menu-btn-advanced';
+        btn.textContent='準備好了，挑戰牡蠣';
+        btn.onclick=()=>{document.getElementById('next-level-overlay').style.display='none';showOptionalOysterPrompt();};
+        actions.appendChild(btn);
+    }
+}
+function showEarnedReviewMenu() {
+    const menu=document.getElementById('next-level-overlay');
+    const title=document.getElementById('level-menu-title');
+    const actions=document.getElementById('level-menu-actions');
+    title.textContent='完成兩關！想複習哪一關？';
+    actions.replaceChildren();
+    showEarnedReviewActions(actions);
+    menu.style.display='flex';
+    gsap.fromTo('#next-level-overlay .menu-box',{scale:.7,opacity:0},{scale:1,opacity:1,duration:.4,ease:'back.out(1.2)'});
 }

@@ -50,3 +50,12 @@
   .chrom-learning-button { min-height:39px; padding:7px 17px; }
   #next-level-overlay .menu-box { padding:15px 22px; gap:8px; }
 }
+
+/* 只區分新版預測／核對表格的「體染色體」和「性染色體」，不改原版染色體顏色。 */
+.chrom-learning-grid .chrom-row-somatic .col-label {
+  color:#1d4ed8; background:#dbeafe; border-left:5px solid #2563eb; font-weight:850;
+}
+.chrom-learning-grid .chrom-row-sex .col-label {
+  color:#be185d; background:#fce7f3; border-left:5px solid #db2777; font-weight:850;
+}
+.chrom-learning-button { max-width:100%; white-space:normal; overflow-wrap:anywhere; }

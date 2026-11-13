@@ -719,6 +719,7 @@
             document.getElementById('mating-btn').style.display = 'none';
             document.getElementById('mating-btn').onclick = startFertilization;
             resetRoundPredictions();
+            if (mode === '2n12') chromJumpSexChallengeTarget = null;
 
             if (mode === '2n10') {
                 gameConfig = { mode: '2n10', ploidy: 2, nValue: 5 };
@@ -810,7 +811,7 @@
             gsap.timeline().to(nucWrapper, { scale: 0, opacity: 0, duration: 1, ease: "power2.in" }).to(scoreBoard1, { opacity: 0, duration: 0.5 }, "<").to(bgBright, { opacity: 1, duration: 1 }).fromTo(mGlass, { x: 0, y: 0, scale: 0.5 }, { x: 140, y: 180, scale: 1, duration: 1.5, ease: "power2.out" }).to(mGlass, { x: 120, y: 200, duration: 1, ease: "sine.inOut" }).to(mGlass, { scale: 25, opacity: 0, duration: 1.5, ease: "power4.in" }).to(bgBright, { opacity: 0, duration: 1.5 }, "<")
               .call(() => { mGlass.style.display = 'none'; initStageGame('m'); })
               .to(maleContainer, { display: 'flex', opacity: 1, scale: currentScale, duration: 1.2, ease: "back.out(1.2)" }, ">-0.2")
-              .call(() => showGametePrediction('m'));
+              .call(() => askAlternativeOffspringChallenge());
         }
 
         function initStageGame(gender) {
@@ -1079,6 +1080,8 @@
             const femaleChroms = boardEntities.filter(e => e.container === 'egg-cell');
             let spermSexChrom = maleChroms.find(c => c.pair == gameConfig.nValue);
             let isBoy = spermSexChrom.h === 106; 
+            // 教學提示只記錄第一次果蠅操作的真實操作結果，不會代替學生選擇精子。
+            if (gameConfig.mode === '2n10') rememberFruitflyOffspringSex(isBoy);
             
             let babyImg = document.getElementById('baby-fly-img');
             
