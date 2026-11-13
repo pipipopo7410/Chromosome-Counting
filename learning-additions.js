@@ -41,80 +41,114 @@ function learningOverlay() {
     }
     return el;
 }
-let chromQuantitySavedScale = null;
+// 預測區塊佈局：只在提問期間移動顯示位置，作答後還原原版細胞。
+let chromQuantitySavedLayout = null;
+let chromGameteSavedLayout = null;
 function restoreQuantityScale() {
-    if (chromQuantitySavedScale === null) return;
-    gsap.set('#nucleus-wrapper', {scale:chromQuantitySavedScale});
-    chromQuantitySavedScale = null;
+    if (!chromQuantitySavedLayout) return;
+    const {element, left, scale} = chromQuantitySavedLayout;
+    gsap.set(element, {left:left || '50%', scale});
+    chromQuantitySavedLayout = null;
+}
+function restoreGameteLayout() {
+    if (!chromGameteSavedLayout) return;
+    const {element, left, scale} = chromGameteSavedLayout;
+    gsap.set(element, {left:left || '50%', scale});
+    chromGameteSavedLayout = null;
 }
 function clearLearningOverlay() {
     restoreQuantityScale();
-    const overlay = learningOverlay();
-    overlay.classList.remove('chrom-visible', 'chrom-quantity-visible');
+    restoreGameteLayout();
+    const overlay=learningOverlay();
+    overlay.classList.remove('chrom-visible','chrom-quantity-visible','chrom-gamete-visible');
 }
-
-// 「幾對／幾套」預測期間，將小問題卡片停靠在細胞外的空白處。
-// 只改顯示位置，不移動細胞、不隱藏染色體、不改動計數／磁吸。
-function positionQuantityPrediction() {
-    const overlay = learningOverlay();
-    if (!overlay.classList.contains('chrom-quantity-visible')) return;
-    const card = overlay.querySelector('.chrom-learning-card');
-    // 橫直向切換時，先回復原始大小再計算新版面。
-    restoreQuantityScale();
-    const nucleus = document.getElementById('nucleus');
-    const vw = window.innerWidth, vh = window.innerHeight;
-    let circle = nucleus.getBoundingClientRect();
-    const outer = 10, gap = 12;
-    let right = vw - circle.right - gap - outer;
-    let left = circle.left - gap - outer;
-    let top = circle.top - gap - outer;
-    let bottom = vh - circle.bottom - gap - outer;
-    // 僅當小螢幕四周完全放不下提問時，暫時縮小細胞。
-    // 作答後恢復原版 100% 尺寸，避免遮住染色體，也不影響後續拖曳座標。
-    if (Math.max(right, left) < 145 && Math.max(top, bottom) < 155) {
-        const wrapper = document.getElementById('nucleus-wrapper');
-        if (chromQuantitySavedScale === null) chromQuantitySavedScale = Number(gsap.getProperty(wrapper,'scale')) || 1;
-        const miniScale = Math.min(chromQuantitySavedScale, 0.85, Math.max(0.48, (vw - 260) / 600));
-        gsap.set(wrapper, {scale:miniScale});
-        circle = nucleus.getBoundingClientRect();
-        right = vw - circle.right - gap - outer;
-        left = circle.left - gap - outer;
-        top = circle.top - gap - outer;
-        bottom = vh - circle.bottom - gap - outer;
-    }
+function placePredictionCard(card, x, y, width, maxHeight) {
     card.classList.remove('chrom-quantity-narrow');
-    card.style.width = ''; card.style.left = ''; card.style.top = '';
-    card.style.right = ''; card.style.bottom = ''; card.style.transform = '';
+    card.style.left=Math.round(x)+'px';
+    card.style.top=Math.round(y)+'px';
+    card.style.right='auto';
+    card.style.bottom='auto';
+    card.style.width=Math.round(width)+'px';
+    card.style.maxHeight=Math.round(maxHeight)+'px';
+    card.style.transform='none';
+}
 
-    if (right >= 145 || left >= 145) {
-        const useRight = right >= left || left < 145;
-        const available = useRight ? right : left;
-        const width = Math.max(105, Math.min(320, available));
-        card.style.width = width + 'px';
-        if (width < 205) card.classList.add('chrom-quantity-narrow');
-        const height = card.getBoundingClientRect().height;
-        const x = useRight ? circle.right + gap : circle.left - gap - width;
-        card.style.left = Math.max(outer, Math.min(vw - width - outer, x)) + 'px';
-        card.style.top = Math.max(outer, Math.min(vh - height - outer, (vh - height) / 2)) + 'px';
-    } else if (top >= 155 || bottom >= 155) {
-        const width = Math.min(570, vw - 2 * outer);
-        card.style.width = width + 'px';
-        const height = card.getBoundingClientRect().height;
-        const useTop = top >= bottom || bottom < 155;
-        card.style.left = (vw - width) / 2 + 'px';
-        card.style.top = (useTop ? outer : vh - height - outer) + 'px';
-    } else {
-        // 低於一般平板大小的螢幕沒有足夠細胞外空間：最小化卡片、靠右。
-        // 不讓任何全螢幕遮罩遮住染色體；原版細胞尺寸維持不變。
-        const width = Math.max(70, Math.min(175, vw - circle.right - outer - gap));
-        card.style.width = width + 'px';
-        card.classList.add('chrom-quantity-narrow');
-        const height = card.getBoundingClientRect().height;
-        card.style.left = Math.max(outer, Math.min(vw - width - outer, circle.right + gap)) + 'px';
-        card.style.top = Math.max(outer, (vh - height) / 2) + 'px';
+// 「幾對／幾套」與原版左上角計數框完全同寬，固定貼在它下方。
+// 如細胞會碰到題目，只在預測期間讓整個細胞靠右，不改染色體大小／座標。
+function positionQuantityPrediction() {
+    const overlay=learningOverlay();
+    if(!overlay.classList.contains('chrom-quantity-visible'))return;
+    restoreQuantityScale();
+    const card=overlay.querySelector('.chrom-learning-card');
+    const score=document.getElementById('score-board-s1');
+    const nucleus=document.getElementById('nucleus');
+    const wrapper=document.getElementById('nucleus-wrapper');
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const margin=12;
+    const sr=score.getBoundingClientRect();
+    const width=Math.min(sr.width,vw-2*margin);
+    const x=Math.max(margin,Math.min(sr.left,vw-width-margin));
+    const y=Math.max(margin,Math.min(vh-125,sr.bottom+12));
+    placePredictionCard(card,x,y,width,Math.max(160,vh-y-margin));
+
+    // 使用矩形的邊界隔開題目與細胞；避免題目卡片蓋到細胞的一角。
+    const cr=card.getBoundingClientRect();
+    const nr=nucleus.getBoundingClientRect();
+    const intersect=cr.right+12>nr.left && cr.left-12<nr.right && cr.bottom+12>nr.top && cr.top-12<nr.bottom;
+    if(intersect){
+        const scale=Number(gsap.getProperty(wrapper,'scale'))||1;
+        chromQuantitySavedLayout={element:wrapper,left:wrapper.style.left,scale};
+        const fullWidth=nr.width/scale;
+        const available=Math.max(230,vw-cr.right-2*margin);
+        const targetScale=Math.min(scale,available/fullWidth);
+        const sizedWidth=fullWidth*targetScale;
+        const centerX=Math.min(vw-margin-sizedWidth/2,cr.right+margin+sizedWidth/2);
+        gsap.set(wrapper,{left:Math.round(centerX)+'px',scale:targetScale});
     }
 }
-window.addEventListener('resize', positionQuantityPrediction);
+
+// 精子／卵子預測採獨立的大型表格，停靠在正在觀察的細胞旁。
+// 不加模糊遮罩、不蓋住細胞；直向畫面若空間不夠，預測期間才微調母細胞位置。
+function positionGametePrediction() {
+    const overlay=learningOverlay();
+    if(!overlay.classList.contains('chrom-gamete-visible'))return;
+    restoreGameteLayout();
+    const card=overlay.querySelector('.chrom-learning-card');
+    const gender=overlay.dataset.gameteGender==='f'?'f':'m';
+    const container=document.getElementById(gender==='m'?'male-container':'female-container');
+    const cell=document.getElementById(gender==='m'?'mother-cell':'female-mother-cell');
+    const vw=window.innerWidth, vh=window.innerHeight;
+    const margin=14,gap=16,minWidth=298;
+    const wanted=Math.min(400,Math.max(320,vw*.35));
+    let rect=cell.getBoundingClientRect();
+    let leftFree=rect.left-margin-gap;
+    let rightFree=vw-rect.right-margin-gap;
+    if(Math.max(leftFree,rightFree)<minWidth) {
+        // 小螢幕才短暫讓作用中的細胞靠右，左側留下完整表格寬度。
+        const scale=Number(gsap.getProperty(container,'scale'))||1;
+        chromGameteSavedLayout={element:container,left:container.style.left,scale};
+        const targetWidth=Math.min(rect.width, vw-minWidth-3*gap);
+        const targetScale=scale*targetWidth/rect.width;
+        const centerX=margin+minWidth+gap+targetWidth/2;
+        gsap.set(container,{left:Math.round(centerX)+'px',scale:targetScale});
+        rect=cell.getBoundingClientRect();
+        leftFree=rect.left-margin-gap;
+        rightFree=vw-rect.right-margin-gap;
+    }
+    const useLeft=leftFree>=rightFree;
+    const space=Math.max(leftFree,rightFree);
+    const width=Math.min(wanted,Math.max(minWidth,space));
+    // 通常在左邊；雌性關卡則靠左上，避開上一階段留下的精子細胞。
+    const x=useLeft?Math.max(margin,rect.left-gap-width):Math.min(vw-width-margin,rect.right+gap);
+    card.style.width=Math.round(width)+'px';
+    const h=card.getBoundingClientRect().height;
+    const y=gender==='f' ? margin : Math.max(margin,(vh-h)/2);
+    placePredictionCard(card,x,Math.min(y,Math.max(margin,vh-h-margin)),width,vh-2*margin);
+}
+window.addEventListener('resize',()=>{
+    positionQuantityPrediction();
+    positionGametePrediction();
+});
 
 function learningModal(title, body, buttons, options = {}) {
     const el = learningOverlay();
@@ -135,8 +169,11 @@ function learningModal(title, body, buttons, options = {}) {
         item.element = btn;
     }
     el.classList.toggle('chrom-quantity-visible', !!options.quantity);
+    el.classList.toggle('chrom-gamete-visible', !!options.gamete);
+    if (options.gamete) el.dataset.gameteGender=options.gamete;
     el.classList.add('chrom-visible');
     if (options.quantity) positionQuantityPrediction();
+    if (options.gamete) positionGametePrediction();
     return { el, actions, bodyArea };
 }
 function makeCountSelect(max, value = '') {
@@ -245,7 +282,7 @@ function showGametePrediction(gender) {
     const title = gender === 'm'
         ? `這隻${getAnimalName()}有${total}條染色體，那精子內有多少條染色體？`
         : '先預測：卵子內有多少染色體？';
-    learningModal(title,wrap,[step]);
+    learningModal(title,wrap,[step],{gamete:gender});
 }
 function showGameteResult(gender) {
     if(chromShownGameteResults[gender]) return;

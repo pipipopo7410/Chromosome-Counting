@@ -60,48 +60,97 @@
 }
 .chrom-learning-button { max-width:100%; white-space:normal; overflow-wrap:anywhere; }
 
-/* 預測「幾對／幾套」時讓整個細胞清楚可見；其他問答視窗保持原版。 */
-#chrom-learning-overlay.chrom-quantity-visible {
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  /* 透明遮罩仍攔住操作，要求學生先作答再進入配對。 */
-  pointer-events: auto;
-  padding: 0;
-  display: block;
+/* 預測專用側欄：不使用中央彈窗與全螢幕模糊遮罩。 */
+#chrom-learning-overlay.chrom-quantity-visible,
+#chrom-learning-overlay.chrom-gamete-visible {
+    background:transparent !important;
+    backdrop-filter:none !important;
+    -webkit-backdrop-filter:none !important;
+    display:block;
+    padding:0;
+    /* 阻止預測前搶先拖曳，保留原版預測→操作流程。 */
+    pointer-events:auto;
 }
+#chrom-learning-overlay.chrom-quantity-visible .chrom-learning-card,
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-card {
+    position:absolute;
+    margin:0;
+    box-sizing:border-box;
+    max-width:none;
+    min-width:0;
+    overflow:visible;
+    pointer-events:auto;
+    box-shadow:0 8px 24px rgba(15,23,42,.16);
+    border-radius:16px;
+    text-align:center;
+    transform:none;
+}
+/* 和左上角原版計數框同寬、下方相連的扁平預測框。 */
 #chrom-learning-overlay.chrom-quantity-visible .chrom-learning-card {
-  position: absolute;
-  margin: 0;
-  max-width: none;
-  pointer-events: auto;
-  padding: 12px 14px;
-  gap: 9px;
-  box-shadow: 0 8px 25px rgba(15,23,42,.18);
+    padding:14px 18px;
+    gap:10px;
+    border:2px solid #e2e8f0;
+    background:rgba(255,255,255,.97);
 }
 #chrom-learning-overlay.chrom-quantity-visible .chrom-learning-title {
-  font-size: clamp(15px, 1.75vw, 21px);
-  line-height: 1.4;
-  overflow-wrap: anywhere;
+    font-size:clamp(17px,2vw,21px);
+    line-height:1.35;
+    overflow-wrap:break-word;
+    word-break:normal;
 }
-#chrom-learning-overlay.chrom-quantity-visible .chrom-learning-check { padding: 0; gap: 6px; }
-#chrom-learning-overlay.chrom-quantity-visible .chrom-learning-button {
-  padding: 8px 13px; min-height: 41px; font-size: clamp(14px, 1.5vw, 17px);
+#chrom-learning-overlay.chrom-quantity-visible .chrom-learning-check {
+    gap:10px; padding:0;
 }
 #chrom-learning-overlay.chrom-quantity-visible .chrom-learning-number {
-  min-width: 75px; min-height: 41px; padding: 4px 8px;
+    min-width:96px; min-height:42px; padding:5px 9px;
 }
-#chrom-learning-overlay.chrom-quantity-visible .chrom-quantity-narrow {
-  padding: 10px 8px; gap: 7px;
+#chrom-learning-overlay.chrom-quantity-visible .chrom-learning-button {
+    min-height:41px; padding:8px 16px; font-size:16px;
 }
-#chrom-learning-overlay.chrom-quantity-visible .chrom-quantity-narrow .chrom-learning-check {
-  flex-direction: column;
+/* 精子卵子：每一格均不拆字、不裁切；整張表格保持可閱讀。 */
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-card {
+    padding:15px 14px;
+    gap:10px;
+    background:rgba(255,255,255,.98);
 }
-#chrom-learning-overlay.chrom-quantity-visible .chrom-quantity-narrow .chrom-learning-number {
-  width: 100%; min-width: 0; box-sizing: border-box;
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-title {
+    font-size:clamp(17px,1.85vw,21px);
+    line-height:1.4;
+    margin:0;
+    overflow-wrap:break-word;
+    word-break:normal;
 }
-#chrom-learning-overlay.chrom-quantity-visible .chrom-quantity-narrow .chrom-learning-button {
-  padding: 6px 7px; width: 100%;
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-body {width:100%; min-width:0;}
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid {
+    width:100%; table-layout:fixed; border-collapse:separate; border-spacing:0 5px;
 }
-/* 沒有標題的牡蠣笑話直接顯示正文，不留下標題的空白高度。 */
-#chrom-learning-overlay .chrom-learning-title:empty { display: none; }
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid th,
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid td {
+    white-space:nowrap;
+    word-break:keep-all;
+    overflow:visible;
+    font-size:clamp(15px,1.6vw,18px);
+    padding:6px 3px;
+}
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid .col-label {
+    width:40%; box-sizing:border-box;
+    padding-left:7px;
+    font-size:clamp(15px,1.55vw,17px);
+}
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid select {
+    width:100%; min-width:0; box-sizing:border-box;
+    min-height:39px; font-size:17px; padding:3px 1px;
+}
+#chrom-learning-overlay.chrom-gamete-visible .chrom-learning-button {
+    font-size:16px; min-height:42px; padding:8px 14px;
+}
+/* 沒有標題的牡蠣笑話直接顯示正文。 */
+#chrom-learning-overlay .chrom-learning-title:empty { display:none; }
+@media (max-height:650px) {
+  #chrom-learning-overlay.chrom-gamete-visible .chrom-learning-card {padding:8px 11px;gap:5px;}
+  #chrom-learning-overlay.chrom-gamete-visible .chrom-learning-title {font-size:16px;line-height:1.25;}
+  #chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid {border-spacing:0 2px;}
+  #chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid td {padding:3px 2px;}
+  #chrom-learning-overlay.chrom-gamete-visible .chrom-learning-grid select {min-height:33px;}
+  #chrom-learning-overlay.chrom-gamete-visible .chrom-learning-button {min-height:36px;}
+}
